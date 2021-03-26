@@ -1,5 +1,6 @@
 use macroquad::prelude::*;
 use macroquad_tantan_toolbox::transition::Transition;
+use macroquad_tantan_toolbox::transition;
 
 const GAME_SIZE: Vec2 = Vec2 {
     x: 512f32,
@@ -29,13 +30,13 @@ async fn main() {
         set_camera(camera2d);
         clear_background(GREEN);
         draw_circle(0f32, 0f32, 10.0f32, BLACK);
-        draw_text("VIEW 1", 0f32, 0f32, 40f32, BLACK);
+        draw_text("VIEW 1", -50f32, 0f32, 40f32, BLACK);
 
         // draw second screen to render texture
         camera2d.render_target = Some(render_target_view2);
         set_camera(camera2d);
         clear_background(BLUE);
-        draw_text("VIEW 2", 0f32, 0f32, 40f32, WHITE);
+        draw_text("VIEW 2", -50f32, 0f32, 40f32, WHITE);
 
         // draw the transition
         set_default_camera();
@@ -43,10 +44,14 @@ async fn main() {
         clear_background(YELLOW);
         let progress = (get_time() as f32 * 4.0f32).sin() * 0.5f32 + 0.5f32;
 
-        transition.draw(
+        // flip_y because rendertexture are flipped...
+        transition.draw_ex(
             render_target_view1.texture,
             render_target_view2.texture,
             progress,
+            transition::DrawParam {
+                flip_y: true,
+            },
         );
 
         next_frame().await
