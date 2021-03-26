@@ -1,0 +1,18 @@
+[package]
+name = "macroquad_tantan_toolbox"
+version = "0.1.0"
+authors = ["TanTanDev <tantangamedev@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = """
+general gamedev tools for macroquad
+"""
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "macroquad_tantan_toolbox"
+path = "src/lib.rs"
+
+[dependencies]
+macroquad = "0.3.0-alpha.17"
