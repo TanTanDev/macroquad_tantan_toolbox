@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
-use macroquad_tantan_toolbox::transition::Transition;
 use macroquad_tantan_toolbox::transition;
+use macroquad_tantan_toolbox::transition::Transition;
 
 const GAME_SIZE: Vec2 = Vec2 {
     x: 512f32,
@@ -49,9 +49,7 @@ async fn main() {
             render_target_view1.texture,
             render_target_view2.texture,
             progress,
-            transition::DrawParam {
-                flip_y: true,
-            },
+            transition::DrawParam { flip_y: true },
         );
 
         next_frame().await

@@ -6,9 +6,7 @@ pub struct DrawParam {
 
 impl Default for DrawParam {
     fn default() -> Self {
-        DrawParam {
-            flip_y: false,
-        }
+        DrawParam { flip_y: false }
     }
 }
 
@@ -19,10 +17,16 @@ pub struct Transition {
 
 impl Transition {
     pub fn draw(&mut self, base_texture: Texture2D, into_texture: Texture2D, progress: f32) {
-        self.draw_ex(base_texture, into_texture, progress, DrawParam::default()); 
+        self.draw_ex(base_texture, into_texture, progress, DrawParam::default());
     }
 
-    pub fn draw_ex(&mut self, base_texture: Texture2D, into_texture: Texture2D, progress: f32, draw_param: DrawParam) {
+    pub fn draw_ex(
+        &mut self,
+        base_texture: Texture2D,
+        into_texture: Texture2D,
+        progress: f32,
+        draw_param: DrawParam,
+    ) {
         self.material.set_uniform("cutoff", progress);
         self.material.set_uniform("fade", self.fade);
         self.material.set_texture("tex_into", into_texture);
