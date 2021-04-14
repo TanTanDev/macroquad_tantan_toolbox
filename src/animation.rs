@@ -40,6 +40,20 @@ impl<A> AnimationInstance<A>
 where
     A: std::cmp::Eq + std::hash::Hash,
 {
+    pub fn new(columns: f32, rows: f32, texture: Texture2D, start_animation: A) -> Self {
+        let true_size = vec2(texture.width() / columns, texture.height() / rows);
+        Self {
+            timer: 0f32,
+            sprite_data: AnimationSpriteData {
+                columns,
+                rows,
+                true_size,
+                texture,
+            },
+            animations: HashMap::new(),
+            current_animation: start_animation,
+        }
+    }
     pub fn add_animation(
         &mut self,
         start_frame: i32,

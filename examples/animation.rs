@@ -18,21 +18,12 @@ async fn main() {
     let game_render_target = render_target(GAME_SIZE.x as u32, GAME_SIZE.y as u32);
     set_texture_filter(game_render_target.texture, FilterMode::Nearest);
 
-    // there are 10 moose sprites
-    let columns = 10f32;
-    let rows = 1f32;
-    let true_size = vec2(texture.width() / columns, texture.height() / rows);
-    let mut animation = AnimationInstance::<MooseAnimationIdentifier> {
-        timer: 0f32,
-        sprite_data: AnimationSpriteData {
-            columns: 12f32,
-            rows: 11f32,
-            true_size,
-            texture: texture,
-        },
-        animations: HashMap::new(),
-        current_animation: MooseAnimationIdentifier::Run,
-    };
+    let mut animation = AnimationInstance::<MooseAnimationIdentifier>::new(
+        10f32,
+        1f32,
+        texture,
+        MooseAnimationIdentifier::Run,
+    );
     animation.add_animation(0, 3, None, 15f32, MooseAnimationIdentifier::Run);
     animation.add_animation(4, 9, Some(7), 13f32, MooseAnimationIdentifier::Sleep);
 
