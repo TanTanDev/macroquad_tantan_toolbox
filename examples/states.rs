@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use macroquad::prelude::*;
 use macroquad_tantan_toolbox::states::*;
+use macroquad_tantan_toolbox::resources::*;
 use std::collections::HashMap;
 
 const GAME_SIZE: Vec2 = Vec2 {
@@ -8,8 +9,6 @@ const GAME_SIZE: Vec2 = Vec2 {
     y: 604f32,
 };
 
-// the menu state prints when something happends AND
-// every update will promt a change to GameState
 pub struct MenuState;
 #[async_trait]
 impl State<TransitionData, SharedData> for MenuState {
@@ -39,7 +38,6 @@ impl State<TransitionData, SharedData> for MenuState {
     }
 }
 
-// GameState prints when something happends
 pub struct GameState;
 #[async_trait]
 impl State<TransitionData, SharedData> for GameState {
@@ -72,42 +70,101 @@ impl State<TransitionData, SharedData> for GameState {
 pub struct LoadingState {
     // optional because we need to consume the internal value when calling changeState
     into_state: Option<Box<dyn State<TransitionData, SharedData>>>,
-    download_progress: i32,
-    total_download: i32,
 }
 
 impl LoadingState {
     pub fn new(into_state: Box<dyn State<TransitionData, SharedData>>) -> Self {
         Self {
             into_state: Some(into_state),
-            download_progress: 0,
-            total_download: 0,
+        }
+    }
+}
+
+#[derive(Hash, Eq, Clone, Debug, Copy, PartialEq)]
+pub enum TextureIdentifier {
+    Player,
+    Moose,
+}
+
+pub struct TextureResources {
+    _player: Texture2D,
+    _moose: Texture2D,
+}
+
+impl Resources<TextureIdentifier, Texture2D, DefaultFactory> for TextureResources {
+    fn build(builder: &mut ResourceBuilder<TextureIdentifier, Self, Texture2D, DefaultFactory>) -> Self {
+        Self {
+            _player: builder.get_or_panic(TextureIdentifier::Player),
+            _moose: builder.get_or_panic(TextureIdentifier::Moose),
+        }
+    }
+}
+
+// BootState will load textures asyncronously whilst drawing the procentage process
+// when every texture resource is loaded, transition to into_state
+pub struct BootState {
+    into_state: Option<Box<dyn State<TransitionData, SharedData>>>,
+    texture_resource_builder: ResourceBuilder<TextureIdentifier, TextureResources, Texture2D, DefaultFactory>,
+}
+
+impl BootState {
+    pub fn new(into_state: Box<dyn State<TransitionData, SharedData>>) -> Self {
+        Self {
+            into_state: Some(into_state),
+            texture_resource_builder: ResourceBuilder::<TextureIdentifier, TextureResources, Texture2D, DefaultFactory>::new(
+                [
+                    (TextureIdentifier::Player, "examples/resources/moose.png"),
+                    (TextureIdentifier::Moose, "examples/resources/moose.png"),
+                ]
+                .into(),
+            ),
         }
     }
 }
 
 #[async_trait]
-impl State<TransitionData, SharedData> for LoadingState {
-    fn on_enter(&mut self, _shared_data: &mut SharedData) {
-        self.download_progress = 0;
-        self.total_download = 100;
-    }
+impl State<TransitionData, SharedData> for BootState {
+    fn on_enter(&mut self, _shared_data: &mut SharedData) {}
+
     async fn on_update(
         &mut self,
         _delta_time: f32,
         shared_data: &mut SharedData,
     ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
-        // unload all textures
-        for tex in shared_data.game_resources.textures.iter() {
-            delete_texture(*tex);
-        }
-        // load textures
-        if self.download_progress < self.total_download {
-            self.download_progress += 1;
+        // load all textures
+        let is_done_loading = self.texture_resource_builder.load_next().await;
+        if !is_done_loading {
             return None;
         }
-        shared_data.game_resources.textures.clear();
+        shared_data.texture_resources_optional = Some(self.texture_resource_builder.build());
+        // unwrap should be safe
+        let into_state = self.into_state.take().unwrap();
+        return Some(StateManagerCommand::ChangeStateEx(
+            into_state,
+            TransitionTime(0.3),
+            TransitionData::Slide,
+        ));
+    }
+    fn on_draw(&mut self, _shared_data: &mut SharedData) {
+        clear_background(BLACK);
+        draw_text(
+            format!("BOOTING UP... {:.0}%", self.texture_resource_builder.progress()*100f32).as_str(),
+            GAME_SIZE.x * 0.5f32 - 140f32,
+            GAME_SIZE.y * 0.5f32,
+            40f32,
+            WHITE,
+        );
+    }
+}
 
+// loading state basically is just a scene inbetween the actual scene we want to load
+#[async_trait]
+impl State<TransitionData, SharedData> for LoadingState {
+    async fn on_update(
+        &mut self,
+        _delta_time: f32,
+        _shared_data: &mut SharedData,
+    ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
         // unwrap should be safe
         let into_state = self.into_state.take().unwrap();
         return Some(StateManagerCommand::ChangeStateEx(
@@ -120,8 +177,9 @@ impl State<TransitionData, SharedData> for LoadingState {
         clear_background(BLACK);
         draw_text(
             format!(
-                "loading level... {:.0}%",
-                (self.download_progress as f32 / self.total_download as f32) * 100f32
+                //"loading level... {:.0}%",
+                "fancy transition huh?"
+                //(self.download_progress as f32 / self.total_download as f32) * 100f32
             )
             .as_str(),
             GAME_SIZE.x * 0.5f32 - 140f32,
@@ -133,11 +191,7 @@ impl State<TransitionData, SharedData> for LoadingState {
 }
 
 pub struct SharedData {
-    game_resources: GameResources,
-}
-
-pub struct GameResources {
-    pub textures: Vec<Texture2D>,
+    texture_resources_optional: Option<TextureResources>,
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy)]
@@ -169,6 +223,7 @@ async fn main() {
     };
 
     let loadingstate_menu = Box::new(LoadingState::new(Box::new(MenuState)));
+    let boot_state = Box::new(BootState::new(loadingstate_menu));
     let size = RenderTargetSize {
         width: GAME_SIZE.x as u32,
         height: GAME_SIZE.y as u32,
@@ -180,9 +235,7 @@ async fn main() {
     let transition_tex_spiral: Texture2D =
         load_texture("examples/resources/transition_spiral.png").await;
     let shared_data = SharedData {
-        game_resources: GameResources {
-            textures: Vec::new(),
-        },
+        texture_resources_optional: None,
     };
 
     let mut transition_texture_map = HashMap::new();
@@ -190,7 +243,7 @@ async fn main() {
     transition_texture_map.insert(TransitionData::Slide, transition_tex_slide);
     transition_texture_map.insert(TransitionData::Spiral, transition_tex_spiral);
     let mut state_manager: StateManager<TransitionData, SharedData> = StateManager::new(
-        loadingstate_menu,
+        boot_state,
         size,
         camera2d,
         shared_data,
