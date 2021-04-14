@@ -212,34 +212,44 @@ where
     pub fn draw(&mut self) {
         Self::change_rendertarget(self.camera, self.current_rendertarget);
         self.current_state.on_draw(&mut self.shared_data);
+
         if let TransitionState::Transitioning(transitioning_data) = &mut self.transition_state {
             // draw into state
             Self::change_rendertarget(self.camera, self.into_rendertarget);
             transitioning_data.into_state.on_draw(&mut self.shared_data);
 
             // combine and draw transition
-            set_default_camera();
-            clear_background(WHITE);
+            Self::change_rendertarget(self.camera, self.current_rendertarget);
             self.transition.draw_ex(
                 self.current_rendertarget.texture,
                 self.into_rendertarget.texture,
                 transitioning_data.progress(),
-                transition::DrawParam { flip_y: true },
-            );
-        } else {
-            // DRAW CURRENT STATE ONLY
-            set_default_camera();
-            clear_background(WHITE);
-            draw_texture_ex(
-                self.current_rendertarget.texture,
-                0.,
-                0.,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(screen_width(), screen_height())),
-                    ..Default::default()
-                },
+                transition::DrawParam { flip_y: false },
             );
         }
+        let game_size = vec2(self.current_rendertarget.texture.width(), self.current_rendertarget.texture.height());
+        let game_diff_w = screen_width() / game_size.x;
+        let game_diff_h = screen_height() / game_size.y;
+        let aspect_diff = game_diff_w.min(game_diff_h);
+
+        let scaled_game_size_w = game_size.x * aspect_diff;
+        let scaled_game_size_h = game_size.y * aspect_diff;
+
+        let width_padding = (screen_width() - scaled_game_size_w) * 0.5f32;
+        let height_padding = (screen_height() - scaled_game_size_h) * 0.5f32;
+        let dest_size = Some(Vec2::new(scaled_game_size_w, scaled_game_size_h));
+        // DRAW CURRENT STATE ONLY
+        set_default_camera();
+        clear_background(BLACK);
+        draw_texture_ex(
+            self.current_rendertarget.texture,
+            width_padding,
+            height_padding,
+            WHITE,
+            DrawTextureParams {
+                dest_size,
+                ..Default::default()
+            },
+        );
     }
 }
