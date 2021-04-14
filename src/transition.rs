@@ -69,7 +69,6 @@ impl Transition {
                     ("fade".to_string(), UniformType::Float1),
                 ],
                 pipeline_params,
-                ..Default::default()
             },
         )
         .unwrap();
@@ -79,7 +78,7 @@ impl Transition {
     }
 }
 
-const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 100
+const DEFAULT_FRAGMENT_SHADER: &str = "#version 100
     precision lowp float;
     varying vec2 uv;
 
@@ -104,7 +103,7 @@ const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 100
     }
 ";
 
-const DEFAULT_VERTEX_SHADER: &'static str = "#version 100
+const DEFAULT_VERTEX_SHADER: &str = "#version 100
     attribute vec3 position;
     attribute vec2 texcoord;
     varying vec2 uv;

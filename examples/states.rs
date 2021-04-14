@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use macroquad::prelude::*;
-use macroquad_tantan_toolbox::states::*;
 use macroquad_tantan_toolbox::resources::*;
+use macroquad_tantan_toolbox::states::*;
 use std::collections::HashMap;
 
 const GAME_SIZE: Vec2 = Vec2 {
@@ -92,7 +92,9 @@ pub struct TextureResources {
 }
 
 impl Resources<TextureIdentifier, Texture2D, DefaultFactory> for TextureResources {
-    fn build(builder: &mut ResourceBuilder<TextureIdentifier, Self, Texture2D, DefaultFactory>) -> Self {
+    fn build(
+        builder: &mut ResourceBuilder<TextureIdentifier, Self, Texture2D, DefaultFactory>,
+    ) -> Self {
         Self {
             _player: builder.get_or_panic(TextureIdentifier::Player),
             _moose: builder.get_or_panic(TextureIdentifier::Moose),
@@ -104,14 +106,20 @@ impl Resources<TextureIdentifier, Texture2D, DefaultFactory> for TextureResource
 // when every texture resource is loaded, transition to into_state
 pub struct BootState {
     into_state: Option<Box<dyn State<TransitionData, SharedData>>>,
-    texture_resource_builder: ResourceBuilder<TextureIdentifier, TextureResources, Texture2D, DefaultFactory>,
+    texture_resource_builder:
+        ResourceBuilder<TextureIdentifier, TextureResources, Texture2D, DefaultFactory>,
 }
 
 impl BootState {
     pub fn new(into_state: Box<dyn State<TransitionData, SharedData>>) -> Self {
         Self {
             into_state: Some(into_state),
-            texture_resource_builder: ResourceBuilder::<TextureIdentifier, TextureResources, Texture2D, DefaultFactory>::new(
+            texture_resource_builder: ResourceBuilder::<
+                TextureIdentifier,
+                TextureResources,
+                Texture2D,
+                DefaultFactory,
+            >::new(
                 [
                     (TextureIdentifier::Player, "examples/resources/moose.png"),
                     (TextureIdentifier::Moose, "examples/resources/moose.png"),
@@ -148,7 +156,11 @@ impl State<TransitionData, SharedData> for BootState {
     fn on_draw(&mut self, _shared_data: &mut SharedData) {
         clear_background(BLACK);
         draw_text(
-            format!("BOOTING UP... {:.0}%", self.texture_resource_builder.progress()*100f32).as_str(),
+            format!(
+                "BOOTING UP... {:.0}%",
+                self.texture_resource_builder.progress() * 100f32
+            )
+            .as_str(),
             GAME_SIZE.x * 0.5f32 - 140f32,
             GAME_SIZE.y * 0.5f32,
             40f32,

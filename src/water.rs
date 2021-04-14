@@ -166,7 +166,7 @@ impl Water {
     }
 }
 
-const WATER_FRAGMENT_SHADER: &'static str = "#version 140
+const WATER_FRAGMENT_SHADER: &str = "#version 140
     in vec2 v_uv;
     uniform float strength;
     uniform sampler2D texture;
@@ -182,7 +182,7 @@ const WATER_FRAGMENT_SHADER: &'static str = "#version 140
     }
 ";
 
-const WATER_VERTEX_SHADER: &'static str = "#version 140
+const WATER_VERTEX_SHADER: &str = "#version 140
     in vec2 pos;
     in vec2 uv;
     in vec2 sample_uv;

@@ -104,12 +104,15 @@ where
     current_state: Box<dyn State<T, S>>,
     transition_state: TransitionState<T, S>,
     last_transition_data: T,
-    shared_data: S,
+    pub shared_data: S,
     transition: Transition,
     current_rendertarget: RenderTarget,
     into_rendertarget: RenderTarget,
     camera: Camera2D,
     transition_texture_map: HashMap<T, Texture2D>,
+
+    // callbacks that always run
+    pub on_update_optional: Option<fn(&mut Self)>,
 }
 
 // T: transition data
@@ -126,7 +129,7 @@ where
         shared_data: S,
         transition_texture_map: HashMap<T, Texture2D>,
     ) -> Self {
-        let first_transition_tex = transition_texture_map.iter().nth(0).unwrap().1;
+        let first_transition_tex = transition_texture_map.iter().next().unwrap().1;
         let mut state_manager = Self {
             current_state: initial_state,
             transition_state: TransitionState::None,
@@ -137,6 +140,7 @@ where
             shared_data,
             camera,
             transition_texture_map,
+            on_update_optional: None,
         };
         state_manager
             .current_state
@@ -201,6 +205,10 @@ where
                 }
             }
         }
+
+        if let Some(update_fn) = self.on_update_optional {
+            update_fn(self);
+        }
     }
 
     fn change_rendertarget(mut camera: Camera2D, target: RenderTarget) {
@@ -227,7 +235,10 @@ where
                 transition::DrawParam { flip_y: false },
             );
         }
-        let game_size = vec2(self.current_rendertarget.texture.width(), self.current_rendertarget.texture.height());
+        let game_size = vec2(
+            self.current_rendertarget.texture.width(),
+            self.current_rendertarget.texture.height(),
+        );
         let game_diff_w = screen_width() / game_size.x;
         let game_diff_h = screen_height() / game_size.y;
         let aspect_diff = game_diff_w.min(game_diff_h);

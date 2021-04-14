@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::fmt::Debug;
 
 // EXAMPLE IMPLEMENTATION OF RESOURCES
 // #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
@@ -10,12 +10,12 @@ use std::fmt::Debug;
 //     Horse,
 //     Moose,
 // }
-// 
+//
 // pub struct TextureResources {
 //     horse: Texture2D,
 //     moose: Texture2D,
 // }
-// 
+//
 // impl Resources<ExampleIdentifier, Texture2D, DefaultFactory> for TextureResources {
 //     fn build(builder: &mut ResourceBuilder<ExampleIdentifier, Self, Texture2D, DefaultFactory>) -> Self {
 //         Self {
@@ -39,7 +39,8 @@ pub trait ResourceFactory<ResourceType> {
 
 // TextureIdentifier: used as a key to acces the resource
 pub trait Resources<ResourceIdentifier, ResourceType, F>: Sized
-    where ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
+where
+    ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
     F: ResourceFactory<ResourceType>,
 {
     fn build(builder: &mut ResourceBuilder<ResourceIdentifier, Self, ResourceType, F>) -> Self;
@@ -47,7 +48,8 @@ pub trait Resources<ResourceIdentifier, ResourceType, F>: Sized
 
 // R: resources
 pub struct ResourceBuilder<ResourceIdentifier, R, ResourceType, F>
-    where ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
+where
+    ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
     R: Resources<ResourceIdentifier, ResourceType, F> + Sized,
     F: ResourceFactory<ResourceType>,
 {
@@ -60,7 +62,8 @@ pub struct ResourceBuilder<ResourceIdentifier, R, ResourceType, F>
 }
 
 impl<TextureIdentifier, R, ResourceType, F> ResourceBuilder<TextureIdentifier, R, ResourceType, F>
-    where TextureIdentifier: Eq + Hash+ Copy + Clone + Debug,
+where
+    TextureIdentifier: Eq + Hash + Copy + Clone + Debug,
     R: Resources<TextureIdentifier, ResourceType, F>,
     F: ResourceFactory<ResourceType>,
 {
@@ -78,8 +81,9 @@ impl<TextureIdentifier, R, ResourceType, F> ResourceBuilder<TextureIdentifier, R
     pub async fn load_next(&mut self) -> bool {
         let is_done = match self.queued_resources.get(0) {
             Some(identifier_name_pair) => {
-                let resource = F::load_resource(identifier_name_pair.1);//load_texture(identifier_name_pair.1).await;
-                self.loaded_resources.insert(identifier_name_pair.0, resource);
+                let resource = F::load_resource(identifier_name_pair.1); //load_texture(identifier_name_pair.1).await;
+                self.loaded_resources
+                    .insert(identifier_name_pair.0, resource);
                 false
             }
             None => true,
@@ -94,18 +98,17 @@ impl<TextureIdentifier, R, ResourceType, F> ResourceBuilder<TextureIdentifier, R
     }
 
     pub fn progress(&mut self) -> f32 {
-        if self.queued_resources.len() == 0 {
+        if self.queued_resources.is_empty() {
             1f32
         } else {
-            1.-self.queued_resources.len() as f32 / self.total_resources_to_load as f32
+            1. - self.queued_resources.len() as f32 / self.total_resources_to_load as f32
         }
     }
 
     pub fn get_or_panic(&mut self, key: TextureIdentifier) -> ResourceType {
-        self
-            .loaded_resources
+        self.loaded_resources
             .remove(&key)
-            .expect(format!("can't find resource: {:?}", key).as_str())
+            .unwrap_or_else(|| panic!("can't find resource: {:?}", key))
     }
 
     pub fn build(&mut self) -> R {
