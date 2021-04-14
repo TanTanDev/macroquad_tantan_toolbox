@@ -2,6 +2,8 @@ use crate::transition;
 use crate::transition::*;
 use async_trait::async_trait;
 use macroquad::prelude::*;
+use std::collections::HashMap;
+use std::hash::Hash;
 
 // T: user defined transition data
 // S: shared data
@@ -24,6 +26,7 @@ where
 pub struct TransitioningData<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     pub time_left: f32,
@@ -34,6 +37,7 @@ where
 impl<T, S> TransitioningData<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     pub fn progress(&self) -> f32 {
@@ -44,6 +48,7 @@ where
 pub enum TransitionState<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     None,
@@ -53,6 +58,7 @@ where
 impl<T, S> Default for TransitionState<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     fn default() -> Self {
@@ -65,6 +71,7 @@ where
 impl<T, S> TransitionState<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     pub fn take(&mut self) -> Self {
@@ -91,22 +98,24 @@ pub enum StateManagerCommand<T, S> {
 pub struct StateManager<T, S>
 where
     S: Send + Sized,
+    T: Send + Sized,
     Self: Sized + Send,
 {
     current_state: Box<dyn State<T, S>>,
     transition_state: TransitionState<T, S>,
-    _transition_data: T,
+    last_transition_data: T,
     shared_data: S,
     transition: Transition,
     current_rendertarget: RenderTarget,
     into_rendertarget: RenderTarget,
     camera: Camera2D,
+    transition_texture_map: HashMap<T, Texture2D>,
 }
 
 // T: transition data
 impl<T, S> StateManager<T, S>
 where
-    T: Default,
+    T: Default + Send + Sized + Copy + Eq + PartialEq + Hash,
     S: Send + Sized + Sync,
     Self: Sized + Send,
 {
@@ -114,18 +123,20 @@ where
         initial_state: Box<dyn State<T, S>>,
         rendertarget_size: RenderTargetSize,
         camera: Camera2D,
-        transition_tex: Texture2D,
         shared_data: S,
+        transition_texture_map: HashMap<T, Texture2D>,
     ) -> Self {
+        let first_transition_tex = transition_texture_map.iter().nth(0).unwrap().1;
         let mut state_manager = Self {
             current_state: initial_state,
             transition_state: TransitionState::None,
-            _transition_data: T::default(),
-            transition: Transition::new(transition_tex, 0.3f32),
+            last_transition_data: T::default(),
+            transition: Transition::new(*first_transition_tex, 0.3f32),
             current_rendertarget: render_target(rendertarget_size.width, rendertarget_size.height),
             into_rendertarget: render_target(rendertarget_size.width, rendertarget_size.height),
             shared_data,
             camera,
+            transition_texture_map,
         };
         state_manager
             .current_state
@@ -145,8 +156,14 @@ where
         &mut self,
         mut state: Box<dyn State<T, S>>,
         time: TransitionTime,
-        _transition_data: T,
+        transition_data: T,
     ) {
+        // update transition texture
+        if self.last_transition_data != transition_data {
+            let transition_tex = self.transition_texture_map.get(&transition_data).unwrap();
+            self.transition.change_transition_tex(*transition_tex);
+        }
+        self.last_transition_data = transition_data;
         // called right as we start transitioning...
         state.on_enter(&mut self.shared_data);
         self.transition_state = TransitionState::Transitioning(TransitioningData {

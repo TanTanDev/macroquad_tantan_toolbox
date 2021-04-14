@@ -1,6 +1,5 @@
 use macroquad::prelude::*;
 use macroquad_tantan_toolbox::animation::*;
-use std::collections::HashMap;
 
 #[derive(std::hash::Hash, Eq, PartialEq)]
 enum MooseAnimationIdentifier {

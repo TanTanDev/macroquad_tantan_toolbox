@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use macroquad::prelude::*;
 use macroquad_tantan_toolbox::states::*;
+use std::collections::HashMap;
 
 const GAME_SIZE: Vec2 = Vec2 {
     x: 1024f32,
@@ -20,7 +21,7 @@ impl State<TransitionData, SharedData> for MenuState {
         if is_key_pressed(KeyCode::Space) {
             return Some(StateManagerCommand::ChangeStateEx(
                 Box::new(LoadingState::new(Box::new(GameState))),
-                TransitionTime(0.3),
+                TransitionTime(0.8),
                 TransitionData::Spiral,
             ));
         }
@@ -51,7 +52,7 @@ impl State<TransitionData, SharedData> for GameState {
             return Some(StateManagerCommand::ChangeStateEx(
                 Box::new(LoadingState::new(Box::new(MenuState))),
                 TransitionTime(0.3),
-                TransitionData::Push,
+                TransitionData::Split,
             ));
         }
         None
@@ -139,9 +140,10 @@ pub struct GameResources {
     pub textures: Vec<Texture2D>,
 }
 
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 pub enum TransitionData {
     Slide,
-    Push,
+    Split,
     Spiral,
 }
 
@@ -171,18 +173,28 @@ async fn main() {
         width: GAME_SIZE.x as u32,
         height: GAME_SIZE.y as u32,
     };
-    let transition_tex: Texture2D = load_texture("examples/resources/transition.png").await;
+    let transition_tex_split: Texture2D =
+        load_texture("examples/resources/transition_split.png").await;
+    let transition_tex_slide: Texture2D =
+        load_texture("examples/resources/transition_slide.png").await;
+    let transition_tex_spiral: Texture2D =
+        load_texture("examples/resources/transition_spiral.png").await;
     let shared_data = SharedData {
         game_resources: GameResources {
             textures: Vec::new(),
         },
     };
+
+    let mut transition_texture_map = HashMap::new();
+    transition_texture_map.insert(TransitionData::Split, transition_tex_split);
+    transition_texture_map.insert(TransitionData::Slide, transition_tex_slide);
+    transition_texture_map.insert(TransitionData::Spiral, transition_tex_spiral);
     let mut state_manager: StateManager<TransitionData, SharedData> = StateManager::new(
         loadingstate_menu,
         size,
         camera2d,
-        transition_tex,
         shared_data,
+        transition_texture_map,
     );
 
     loop {

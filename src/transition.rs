@@ -45,6 +45,10 @@ impl Transition {
         gl_use_default_material();
     }
 
+    pub fn change_transition_tex(&mut self, texture: Texture2D) {
+        self.material.set_texture("tex_transition", texture);
+    }
+
     pub fn new(transition_tex: Texture2D, fade: f32) -> Self {
         let fragment_shader = DEFAULT_FRAGMENT_SHADER.to_string();
         let vertex_shader = DEFAULT_VERTEX_SHADER.to_string();
