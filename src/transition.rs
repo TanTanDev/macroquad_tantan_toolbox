@@ -79,8 +79,9 @@ impl Transition {
     }
 }
 
-const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 140
-    in vec2 uv;
+const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 100
+    precision lowp float;
+    varying vec2 uv;
 
     uniform float cutoff;
     uniform float fade;
@@ -89,7 +90,7 @@ const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 140
     uniform sampler2D tex_into;
     uniform sampler2D tex_transition;
 
-    out vec4 color;
+    varying vec4 color;
 
     void main() {
         float transition = texture2D(tex_transition, uv).r;
@@ -99,14 +100,14 @@ const DEFAULT_FRAGMENT_SHADER: &'static str = "#version 140
         // remap transition from 0-1 to fade -> 1.0-fade
         transition = transition * (1.0 - fade) + fade;
         float f = smoothstep(cutoff, cutoff + fade, transition);
-        color = mix(base_color, into_color, f);
+        gl_FragColor = mix(base_color, into_color, f); 
     }
 ";
 
-const DEFAULT_VERTEX_SHADER: &'static str = "#version 140
-    in vec3 position;
-    in vec2 texcoord;
-    out vec2 uv;
+const DEFAULT_VERTEX_SHADER: &'static str = "#version 100
+    attribute vec3 position;
+    attribute vec2 texcoord;
+    varying vec2 uv;
 
     void main() {
         gl_Position = vec4(position, 1);
