@@ -4,32 +4,28 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-// EXAMPLE IMPLEMENTATION OF RESOURCES
-// #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-// pub enum ExampleIdentifier {
-//     Horse,
-//     Moose,
-// }
-//
-// pub struct TextureResources {
-//     horse: Texture2D,
-//     moose: Texture2D,
-// }
-//
-// impl Resources<ExampleIdentifier, Texture2D, DefaultFactory> for TextureResources {
-//     fn build(builder: &mut ResourceBuilder<ExampleIdentifier, Self, Texture2D, DefaultFactory>) -> Self {
-//         Self {
-//             horse: builder.get_or_panic(ExampleIdentifier::Horse),
-//             moose: builder.get_or_panic(ExampleIdentifier::Moose),
-//         }
-//     }
-// }
+// THIS doesn't work on wasm builds atm due to futures::executor::block_on not being allowed in wasm
 
-// ready to use resource implementations
 pub struct DefaultFactory;
 impl ResourceFactory<Texture2D> for DefaultFactory {
     fn load_resource(path: &str) -> Texture2D {
-        futures::executor::block_on(load_texture(path))
+        let texture = futures::executor::block_on(load_texture(path)).unwrap();
+        texture.set_filter(FilterMode::Nearest);
+        texture
+    }
+}
+
+impl ResourceFactory<Image> for DefaultFactory {
+    fn load_resource(path: &str) -> Image {
+        let image = futures::executor::block_on(load_image(path)).unwrap();
+        image
+    }
+}
+
+impl ResourceFactory<Vec<u8>> for DefaultFactory {
+    fn load_resource(path: &str) -> Vec<u8> {
+        let file = futures::executor::block_on(load_file(path));
+        file.unwrap()
     }
 }
 
@@ -40,7 +36,7 @@ pub trait ResourceFactory<ResourceType> {
 // TextureIdentifier: used as a key to acces the resource
 pub trait Resources<ResourceIdentifier, ResourceType, F>: Sized
 where
-    ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
+    ResourceIdentifier: Eq + Hash + Clone + Debug,
     F: ResourceFactory<ResourceType>,
 {
     fn build(builder: &mut ResourceBuilder<ResourceIdentifier, Self, ResourceType, F>) -> Self;
@@ -49,7 +45,7 @@ where
 // R: resources
 pub struct ResourceBuilder<ResourceIdentifier, R, ResourceType, F>
 where
-    ResourceIdentifier: Eq + Hash + Copy + Clone + Debug,
+    ResourceIdentifier: Eq + Hash + Clone + Debug,
     R: Resources<ResourceIdentifier, ResourceType, F> + Sized,
     F: ResourceFactory<ResourceType>,
 {
@@ -59,6 +55,10 @@ where
     total_resources_to_load: i32,
     phantom_resource_r: PhantomData<R>,
     phantom_resource_f: PhantomData<F>,
+}
+
+pub async fn test(path: &str) -> Texture2D {
+    load_texture(path).await.unwrap()
 }
 
 impl<TextureIdentifier, R, ResourceType, F> ResourceBuilder<TextureIdentifier, R, ResourceType, F>
@@ -82,6 +82,7 @@ where
         let is_done = match self.queued_resources.get(0) {
             Some(identifier_name_pair) => {
                 let resource = F::load_resource(identifier_name_pair.1); //load_texture(identifier_name_pair.1).await;
+                println!("loaded resource: {:?}", identifier_name_pair);
                 self.loaded_resources
                     .insert(identifier_name_pair.0, resource);
                 false

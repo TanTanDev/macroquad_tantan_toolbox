@@ -34,6 +34,9 @@ where
     pub sprite_data: AnimationSpriteData,
     pub animations: HashMap<A, AnimationData>,
     pub current_animation: A,
+    // auto player this animation after current finishes
+    pub into_animation_optional: Option<A>,
+    pub scale: Vec2,
 }
 
 impl<A> AnimationInstance<A>
@@ -52,6 +55,8 @@ where
             },
             animations: HashMap::new(),
             current_animation: start_animation,
+            into_animation_optional: None,
+            scale: vec2(1., 1.),
         }
     }
     pub fn add_animation(
@@ -91,6 +96,9 @@ where
             } else {
                 self.timer = animation_data.start_frame as f32;
             }
+            if let Some(into_animation) = self.into_animation_optional.take() {
+                self.play_animation(into_animation);
+            }
         }
     }
 
@@ -103,16 +111,32 @@ where
         self.timer = animation_data.start_frame as f32;
     }
 
-    pub fn draw(&self, pos: &Vec2) {
+    // playe animation then the second one right after
+    pub fn play_animation_then(&mut self, identifier: A, after: A) {
+        self.current_animation = identifier;
+        self.into_animation_optional = Some(after);
+        let animation_data = self
+            .animations
+            .get(&self.current_animation)
+            .expect("NO ANIMATION");
+        self.timer = animation_data.start_frame as f32;
+    }
+
+    pub fn draw(&self, pos: &Vec2, flip_x: bool) {
         let x_index = self.timer as i32 % (self.sprite_data.columns) as i32;
         let y_index = (self.timer as f32 / self.sprite_data.columns).floor();
 
         draw_texture_ex(
             self.sprite_data.texture,
-            pos.x,
-            pos.y,
+            pos.x - self.sprite_data.true_size.x * self.scale.x * 0.5f32,
+            pos.y - self.sprite_data.true_size.y * self.scale.y * 0.5f32,
             WHITE,
             DrawTextureParams {
+                flip_x,
+                dest_size: Some(vec2(
+                    self.sprite_data.true_size.x * self.scale.x,
+                    self.sprite_data.true_size.y * self.scale.y,
+                )),
                 source: Some(Rect {
                     x: x_index as f32 * self.sprite_data.true_size.x,
                     y: y_index as f32 * self.sprite_data.true_size.y,

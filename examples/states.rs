@@ -15,7 +15,7 @@ impl State<TransitionData, SharedData> for MenuState {
     async fn on_update(
         &mut self,
         _delta_time: f32,
-        _shared_data: &mut SharedData,
+        _payload: &mut StateManagerPayload<SharedData>,
     ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
         if is_key_pressed(KeyCode::Space) {
             return Some(StateManagerCommand::ChangeStateEx(
@@ -26,7 +26,7 @@ impl State<TransitionData, SharedData> for MenuState {
         }
         None
     }
-    fn on_draw(&mut self, _shared_data: &mut SharedData) {
+    fn on_draw(&mut self, _payload: StateManagerPayload<SharedData>) {
         clear_background(WHITE);
         draw_text(
             "MENU STATE",
@@ -44,7 +44,7 @@ impl State<TransitionData, SharedData> for GameState {
     async fn on_update(
         &mut self,
         _delta_time: f32,
-        _shared_data: &mut SharedData,
+        _shared_data: &mut StateManagerPayload<SharedData>,
     ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
         if is_key_pressed(KeyCode::Space) {
             return Some(StateManagerCommand::ChangeStateEx(
@@ -55,7 +55,7 @@ impl State<TransitionData, SharedData> for GameState {
         }
         None
     }
-    fn on_draw(&mut self, _shared_data: &mut SharedData) {
+    fn on_draw(&mut self, _payload: StateManagerPayload<SharedData>) {
         clear_background(YELLOW);
         draw_text(
             "GAME STATE",
@@ -132,19 +132,20 @@ impl BootState {
 
 #[async_trait]
 impl State<TransitionData, SharedData> for BootState {
-    fn on_enter(&mut self, _shared_data: &mut SharedData) {}
+    fn on_enter(&mut self, _payload: StateManagerPayload<SharedData>) {}
 
     async fn on_update(
         &mut self,
         _delta_time: f32,
-        shared_data: &mut SharedData,
+        payload: &mut StateManagerPayload<SharedData>,
     ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
         // load all textures
         let is_done_loading = self.texture_resource_builder.load_next().await;
         if !is_done_loading {
             return None;
         }
-        shared_data.texture_resources_optional = Some(self.texture_resource_builder.build());
+        payload.shared_data.texture_resources_optional =
+            Some(self.texture_resource_builder.build());
         // unwrap should be safe
         let into_state = self.into_state.take().unwrap();
         return Some(StateManagerCommand::ChangeStateEx(
@@ -153,7 +154,7 @@ impl State<TransitionData, SharedData> for BootState {
             TransitionData::Slide,
         ));
     }
-    fn on_draw(&mut self, _shared_data: &mut SharedData) {
+    fn on_draw(&mut self, _shared_data: StateManagerPayload<SharedData>) {
         clear_background(BLACK);
         draw_text(
             format!(
@@ -175,7 +176,7 @@ impl State<TransitionData, SharedData> for LoadingState {
     async fn on_update(
         &mut self,
         _delta_time: f32,
-        _shared_data: &mut SharedData,
+        _payload: &mut StateManagerPayload<SharedData>,
     ) -> Option<StateManagerCommand<TransitionData, SharedData>> {
         // unwrap should be safe
         let into_state = self.into_state.take().unwrap();
@@ -185,7 +186,7 @@ impl State<TransitionData, SharedData> for LoadingState {
             TransitionData::Slide,
         ));
     }
-    fn on_draw(&mut self, _shared_data: &mut SharedData) {
+    fn on_draw(&mut self, _shared_data: StateManagerPayload<SharedData>) {
         clear_background(BLACK);
         draw_text(
             format!(

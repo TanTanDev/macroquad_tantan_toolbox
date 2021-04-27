@@ -45,7 +45,8 @@ async fn main() {
         }
 
         animation.update(get_frame_time());
-        animation.draw(&vec2(-GAME_SIZE.x * 0.5f32, 0f32));
+        animation.draw(&vec2(0f32, 0f32), false);
+        //animation.draw(&vec2(-GAME_SIZE.x * 0.5f32, 0f32), false);
 
         set_default_camera();
         clear_background(BLUE);

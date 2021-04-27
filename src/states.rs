@@ -10,17 +10,17 @@ use std::hash::Hash;
 #[async_trait]
 pub trait State<T, S>
 where
-    S: Send + Sync,
+    S: Send,
     Self: Send,
 {
-    fn on_enter(&mut self, _shared_data: &mut S) {}
-    fn on_exit(&mut self, _shared_data: &mut S) {}
+    fn on_enter(&mut self, _payload: StateManagerPayload<S>) {}
+    fn on_exit(&mut self, _payload: StateManagerPayload<S>) {}
     async fn on_update(
         &mut self,
         _delta_time: f32,
-        _shared_data: &mut S,
+        _payload: &mut StateManagerPayload<S>,
     ) -> Option<StateManagerCommand<T, S>>;
-    fn on_draw(&mut self, _shared_data: &mut S) {}
+    fn on_draw(&mut self, _payload: StateManagerPayload<S>) {}
 }
 
 pub struct TransitioningData<T, S>
@@ -91,6 +91,16 @@ pub enum StateManagerCommand<T, S> {
     ChangeStateEx(Box<dyn State<T, S>>, TransitionTime, T),
 }
 
+// passed to states to reference members of statemanager
+pub struct StateManagerPayload<'a, S>
+where
+    S: Send + Sized,
+{
+    pub shared_data: &'a mut S,
+    pub camera: &'a mut Camera2D,
+    pub current_rendertarget: &'a mut RenderTarget,
+}
+
 // this statemanager handles transitioning animation built in
 // the rendering part is heavily tailored around macroquad
 // T: transition data
@@ -113,13 +123,14 @@ where
 
     // callbacks that always run
     pub on_update_optional: Option<fn(&mut Self)>,
+    pub on_draw_optional: Option<fn(&mut Self)>,
 }
 
 // T: transition data
 impl<T, S> StateManager<T, S>
 where
     T: Default + Send + Sized + Copy + Eq + PartialEq + Hash,
-    S: Send + Sized + Sync,
+    S: Send + Sized,
     Self: Sized + Send,
 {
     pub fn new(
@@ -141,18 +152,39 @@ where
             camera,
             transition_texture_map,
             on_update_optional: None,
+            on_draw_optional: None,
         };
+        //state_manager.into_rendertarget.texture.set_filter(FilterMode::Nearest);
         state_manager
-            .current_state
-            .on_enter(&mut state_manager.shared_data);
+            .into_rendertarget
+            .texture
+            .set_filter(FilterMode::Nearest);
+        //state_manager.current_rendertarget.texture.set_filter( FilterMode::Nearest);
+        state_manager
+            .current_rendertarget
+            .texture
+            .set_filter(FilterMode::Nearest);
+        state_manager.current_state.on_enter(StateManagerPayload {
+            shared_data: &mut state_manager.shared_data,
+            camera: &mut state_manager.camera,
+            current_rendertarget: &mut state_manager.current_rendertarget,
+        });
         state_manager
     }
 
     // change state instantly without transition
     pub fn change_state(&mut self, state: Box<dyn State<T, S>>) {
-        self.current_state.on_exit(&mut self.shared_data);
+        self.current_state.on_exit(StateManagerPayload {
+            shared_data: &mut self.shared_data,
+            camera: &mut self.camera,
+            current_rendertarget: &mut self.current_rendertarget,
+        });
         self.current_state = state;
-        self.current_state.on_enter(&mut self.shared_data);
+        self.current_state.on_enter(StateManagerPayload {
+            shared_data: &mut self.shared_data,
+            camera: &mut self.camera,
+            current_rendertarget: &mut self.current_rendertarget,
+        });
     }
 
     // change state with transition
@@ -169,7 +201,11 @@ where
         }
         self.last_transition_data = transition_data;
         // called right as we start transitioning...
-        state.on_enter(&mut self.shared_data);
+        state.on_enter(StateManagerPayload {
+            shared_data: &mut self.shared_data,
+            camera: &mut self.camera,
+            current_rendertarget: &mut self.current_rendertarget,
+        });
         self.transition_state = TransitionState::Transitioning(TransitioningData {
             time_left: time.0,
             start_time: time.0,
@@ -185,7 +221,11 @@ where
                 if let TransitionState::Transitioning(transitioning_data) =
                     self.transition_state.take()
                 {
-                    self.current_state.on_exit(&mut self.shared_data);
+                    self.current_state.on_exit(StateManagerPayload {
+                        shared_data: &mut self.shared_data,
+                        camera: &mut self.camera,
+                        current_rendertarget: &mut self.current_rendertarget,
+                    });
                     self.current_state = transitioning_data.into_state;
                 }
             }
@@ -193,7 +233,14 @@ where
         }
         let command_optional = self
             .current_state
-            .on_update(delta_time, &mut self.shared_data)
+            .on_update(
+                delta_time,
+                &mut StateManagerPayload {
+                    shared_data: &mut self.shared_data,
+                    camera: &mut self.camera,
+                    current_rendertarget: &mut self.current_rendertarget,
+                },
+            )
             .await;
         if let Some(command) = command_optional {
             match command {
@@ -211,23 +258,31 @@ where
         }
     }
 
-    fn change_rendertarget(mut camera: Camera2D, target: RenderTarget) {
+    fn change_rendertarget(mut camera: &mut Camera2D, target: RenderTarget) {
         camera.render_target = Some(target);
         set_camera(camera);
     }
 
     // call the current states, draw funciton
     pub fn draw(&mut self) {
-        Self::change_rendertarget(self.camera, self.current_rendertarget);
-        self.current_state.on_draw(&mut self.shared_data);
+        Self::change_rendertarget(&mut self.camera, self.current_rendertarget);
+        self.current_state.on_draw(StateManagerPayload {
+            shared_data: &mut self.shared_data,
+            camera: &mut self.camera,
+            current_rendertarget: &mut self.current_rendertarget,
+        });
 
         if let TransitionState::Transitioning(transitioning_data) = &mut self.transition_state {
             // draw into state
-            Self::change_rendertarget(self.camera, self.into_rendertarget);
-            transitioning_data.into_state.on_draw(&mut self.shared_data);
+            Self::change_rendertarget(&mut self.camera, self.into_rendertarget);
+            transitioning_data.into_state.on_draw(StateManagerPayload {
+                shared_data: &mut self.shared_data,
+                camera: &mut self.camera,
+                current_rendertarget: &mut self.current_rendertarget,
+            });
 
             // combine and draw transition
-            Self::change_rendertarget(self.camera, self.current_rendertarget);
+            Self::change_rendertarget(&mut self.camera, self.current_rendertarget);
             self.transition.draw_ex(
                 self.current_rendertarget.texture,
                 self.into_rendertarget.texture,

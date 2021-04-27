@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use miniquad::*;
 
 pub struct Water {
-    pos: Vec2,
+    pub pos: Vec2,
     size: Vec2,
     pub rotation: f32,
 
@@ -45,18 +45,18 @@ impl Stage {
         let vertices = match flip_y {
             true => {
                 [
-                    Vertex { pos : Vec2 { x: -1.0, y: -1.0 }, uv: Vec2 { x: 0., y: 0. }, sample_uv: Vec2 {x: -1., y: -1.} },
-                    Vertex { pos : Vec2 { x:  1.0, y: -1.0 }, uv: Vec2 { x: 1., y: 0. }, sample_uv: Vec2 {x: 1., y: -1.} },
-                    Vertex { pos : Vec2 { x:  1.0, y:  1.0 }, uv: Vec2 { x: 1., y: 1. }, sample_uv: Vec2 {x: 1., y: -3.} },
-                    Vertex { pos : Vec2 { x: -1.0, y:  1.0 }, uv: Vec2 { x: 0., y: 1. }, sample_uv: Vec2 {x: -1., y: -3.} },
+                    Vertex { pos : Vec2::new(-1.0, -1.0), uv: Vec2::new(0., 0.), sample_uv: Vec2::new(-1., -1.) },
+                    Vertex { pos : Vec2::new( 1.0, -1.0), uv: Vec2::new(1., 0.), sample_uv: Vec2::new(1., -1.)},
+                    Vertex { pos : Vec2::new( 1.0,  1.0), uv: Vec2::new(1., 1.), sample_uv: Vec2::new(1., -3.) },
+                    Vertex { pos : Vec2::new(-1.0,  1.0), uv: Vec2::new(0., 1.), sample_uv: Vec2::new(-1., -3.) },
                 ]
             },
             false => {
                 [
-                    Vertex { pos : Vec2 { x: -1.0, y: -1.0 }, uv: Vec2 { x: 0., y: 0. }, sample_uv: Vec2 {x: -1., y: -3.} },
-                    Vertex { pos : Vec2 { x:  1.0, y: -1.0 }, uv: Vec2 { x: 1., y: 0. }, sample_uv: Vec2 {x: 1., y: -3.} },
-                    Vertex { pos : Vec2 { x:  1.0, y:  1.0 }, uv: Vec2 { x: 1., y: 1. }, sample_uv: Vec2 {x: 1., y: -1.} },
-                    Vertex { pos : Vec2 { x: -1.0, y:  1.0 }, uv: Vec2 { x: 0., y: 1. }, sample_uv: Vec2 {x: -1., y: -1.} },
+                    Vertex { pos : Vec2::new(-1.0,-1.0 ), uv: Vec2::new(0., 0. ), sample_uv: Vec2::new( -1., -3.) },
+                    Vertex { pos : Vec2::new( 1.0,-1.0 ), uv: Vec2::new(1., 0. ), sample_uv: Vec2::new( 1., -3.) },
+                    Vertex { pos : Vec2::new( 1.0, 1.0 ), uv: Vec2::new(1., 1. ), sample_uv: Vec2::new( 1., -1.) },
+                    Vertex { pos : Vec2::new(-1.0, 1.0 ), uv: Vec2::new(0., 1. ), sample_uv: Vec2::new( -1., -1.) },
                 ]
             }
         };

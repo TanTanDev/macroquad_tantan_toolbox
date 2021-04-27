@@ -15,6 +15,6 @@ name = "macroquad_tantan_toolbox"
 path = "src/lib.rs"
 
 [dependencies]
-macroquad = "0.3.0-alpha.17"
+macroquad = "0.3.1"
 futures = "0.3.14"
 async-trait = "0.1.48"
