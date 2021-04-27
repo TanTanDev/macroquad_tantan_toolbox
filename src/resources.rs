@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use macroquad::audio::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -22,9 +23,9 @@ impl ResourceFactory<Image> for DefaultFactory {
     }
 }
 
-impl ResourceFactory<Vec<u8>> for DefaultFactory {
-    fn load_resource(path: &str) -> Vec<u8> {
-        let file = futures::executor::block_on(load_file(path));
+impl ResourceFactory<Sound> for DefaultFactory {
+    fn load_resource(path: &str) -> Sound {
+        let file = futures::executor::block_on(load_sound(path));
         file.unwrap()
     }
 }
