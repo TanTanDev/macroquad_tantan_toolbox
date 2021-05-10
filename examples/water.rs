@@ -1,15 +1,12 @@
 use macroquad::prelude::*;
 use macroquad_tantan_toolbox::water::*;
 
-const GAME_SIZE: Vec2 = Vec2 {
-    x: 1344f32,
-    y: 768f32,
-};
+const GAME_SIZE: Vec2 = const_vec2!([1344f32, 768f32]);
 
 #[macroquad::main("water")]
 async fn main() {
     let render_target_game = render_target(GAME_SIZE.x as u32, GAME_SIZE.y as u32);
-    set_texture_filter(render_target_game.texture, FilterMode::Nearest);
+    render_target_game.texture.set_filter(FilterMode::Nearest);
 
     let camera2d = Camera2D {
         zoom: vec2(1. / GAME_SIZE.x * 2., 1. / GAME_SIZE.y * 2.),
@@ -21,7 +18,9 @@ async fn main() {
         ..Default::default()
     };
 
-    let tex_water_raw = load_image("examples/resources/water_normal.png").await;
+    let tex_water_raw = load_image("examples/resources/water_normal.png")
+        .await
+        .unwrap();
     let tex_water_normal = {
         // All of this is so we can sample the texture repeatedly
         use miniquad;
@@ -57,11 +56,13 @@ async fn main() {
         0f32,
     );
 
-    let beautiful = load_texture("examples/resources/dig_escape_snap.png").await;
-    set_texture_filter(beautiful, FilterMode::Nearest);
+    let beautiful = load_texture("examples/resources/dig_escape_snap.png")
+        .await
+        .unwrap();
+    beautiful.set_filter(FilterMode::Nearest);
     loop {
         // draw first view to render texture
-        set_camera(camera2d);
+        set_camera(&camera2d);
         clear_background(BLUE);
         draw_texture_ex(
             beautiful,

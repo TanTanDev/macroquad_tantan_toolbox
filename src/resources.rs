@@ -1,5 +1,5 @@
-use macroquad::prelude::*;
 use macroquad::audio::*;
+use macroquad::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;

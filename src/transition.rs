@@ -1,4 +1,4 @@
-use macroquad::prelude::*;
+use macroquad::{miniquad::gl::GL_TEXTURE_CUBE_MAP_NEGATIVE_X, prelude::*};
 
 pub struct DrawParam {
     pub flip_y: bool,
@@ -31,6 +31,7 @@ impl Transition {
         self.material.set_uniform("fade", self.fade);
         self.material.set_texture("tex_into", into_texture);
         gl_use_material(self.material);
+        clear_background(WHITE);
         draw_texture_ex(
             base_texture,
             -1.,

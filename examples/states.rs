@@ -4,10 +4,7 @@ use macroquad_tantan_toolbox::resources::*;
 use macroquad_tantan_toolbox::states::*;
 use std::collections::HashMap;
 
-const GAME_SIZE: Vec2 = Vec2 {
-    x: 1024f32,
-    y: 604f32,
-};
+const GAME_SIZE: Vec2 = const_vec2!([1024f32, 604f32]);
 
 pub struct MenuState;
 #[async_trait]
@@ -223,7 +220,7 @@ impl Default for TransitionData {
 #[macroquad::main("states")]
 async fn main() {
     let render_target_game = render_target(GAME_SIZE.x as u32, GAME_SIZE.y as u32);
-    set_texture_filter(render_target_game.texture, FilterMode::Nearest);
+    render_target_game.texture.set_filter(FilterMode::Nearest);
 
     let camera2d = Camera2D {
         zoom: vec2(1. / GAME_SIZE.x * 2., 1. / GAME_SIZE.y * 2.),
@@ -241,12 +238,15 @@ async fn main() {
         width: GAME_SIZE.x as u32,
         height: GAME_SIZE.y as u32,
     };
-    let transition_tex_split: Texture2D =
-        load_texture("examples/resources/transition_split.png").await;
-    let transition_tex_slide: Texture2D =
-        load_texture("examples/resources/transition_slide.png").await;
-    let transition_tex_spiral: Texture2D =
-        load_texture("examples/resources/transition_spiral.png").await;
+    let transition_tex_split: Texture2D = load_texture("examples/resources/transition_split.png")
+        .await
+        .unwrap();
+    let transition_tex_slide: Texture2D = load_texture("examples/resources/transition_slide.png")
+        .await
+        .unwrap();
+    let transition_tex_spiral: Texture2D = load_texture("examples/resources/transition_spiral.png")
+        .await
+        .unwrap();
     let shared_data = SharedData {
         texture_resources_optional: None,
     };

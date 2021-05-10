@@ -7,15 +7,15 @@ enum MooseAnimationIdentifier {
     Sleep,
 }
 
-const GAME_SIZE: Vec2 = Vec2 { x: 64f32, y: 64f32 };
+const GAME_SIZE: Vec2 = const_vec2!([64f32, 64f32]);
 
 #[macroquad::main("animation")]
 async fn main() {
-    let texture: Texture2D = load_texture("examples/resources/moose.png").await;
-    set_texture_filter(texture, FilterMode::Nearest);
+    let texture: Texture2D = load_texture("examples/resources/moose.png").await.unwrap();
+    texture.set_filter(FilterMode::Nearest);
 
     let game_render_target = render_target(GAME_SIZE.x as u32, GAME_SIZE.y as u32);
-    set_texture_filter(game_render_target.texture, FilterMode::Nearest);
+    game_render_target.texture.set_filter(FilterMode::Nearest);
 
     let mut animation = AnimationInstance::<MooseAnimationIdentifier>::new(
         10f32,
@@ -25,14 +25,14 @@ async fn main() {
     );
     animation.add_animation(0, 3, None, 15f32, MooseAnimationIdentifier::Run);
     animation.add_animation(4, 9, Some(7), 13f32, MooseAnimationIdentifier::Sleep);
-
+    let camera = Camera2D {
+        zoom: vec2(1. / GAME_SIZE.x * 2., 1. / GAME_SIZE.y * 2.),
+        target: vec2(0.0, 0.0),
+        render_target: Some(game_render_target),
+        ..Default::default()
+    };
     loop {
-        set_camera(Camera2D {
-            zoom: vec2(1. / GAME_SIZE.x * 2., 1. / GAME_SIZE.y * 2.),
-            target: vec2(0.0, 0.0),
-            render_target: Some(game_render_target),
-            ..Default::default()
-        });
+        set_camera(&camera);
         clear_background(BLUE);
 
         // change animation

@@ -118,6 +118,8 @@ where
     transition: Transition,
     current_rendertarget: RenderTarget,
     into_rendertarget: RenderTarget,
+    // to draw the transtition this will be the target texture to draw to
+    transition_rendertarget: RenderTarget,
     camera: Camera2D,
     transition_texture_map: HashMap<T, Texture2D>,
 
@@ -148,6 +150,10 @@ where
             transition: Transition::new(*first_transition_tex, 0.3f32),
             current_rendertarget: render_target(rendertarget_size.width, rendertarget_size.height),
             into_rendertarget: render_target(rendertarget_size.width, rendertarget_size.height),
+            transition_rendertarget: render_target(
+                rendertarget_size.width,
+                rendertarget_size.height,
+            ),
             shared_data,
             camera,
             transition_texture_map,
@@ -230,25 +236,26 @@ where
                 }
             }
             return;
-        }
-        let command_optional = self
-            .current_state
-            .on_update(
-                delta_time,
-                &mut StateManagerPayload {
-                    shared_data: &mut self.shared_data,
-                    camera: &mut self.camera,
-                    current_rendertarget: &mut self.current_rendertarget,
-                },
-            )
-            .await;
-        if let Some(command) = command_optional {
-            match command {
-                StateManagerCommand::ChangeState(state) => {
-                    self.change_state(state);
-                }
-                StateManagerCommand::ChangeStateEx(state, transition_time, transition_data) => {
-                    self.change_state_ex(state, transition_time, transition_data);
+        } else {
+            let command_optional = self
+                .current_state
+                .on_update(
+                    delta_time,
+                    &mut StateManagerPayload {
+                        shared_data: &mut self.shared_data,
+                        camera: &mut self.camera,
+                        current_rendertarget: &mut self.current_rendertarget,
+                    },
+                )
+                .await;
+            if let Some(command) = command_optional {
+                match command {
+                    StateManagerCommand::ChangeState(state) => {
+                        self.change_state(state);
+                    }
+                    StateManagerCommand::ChangeStateEx(state, transition_time, transition_data) => {
+                        self.change_state_ex(state, transition_time, transition_data);
+                    }
                 }
             }
         }
@@ -282,12 +289,24 @@ where
             });
 
             // combine and draw transition
-            Self::change_rendertarget(&mut self.camera, self.current_rendertarget);
+            // transition is drawn to the temp target
+            // and we then draw temp targget to current rendertarget
+            Self::change_rendertarget(&mut self.camera, self.transition_rendertarget);
             self.transition.draw_ex(
                 self.current_rendertarget.texture,
                 self.into_rendertarget.texture,
                 transitioning_data.progress(),
                 transition::DrawParam { flip_y: false },
+            );
+            Self::change_rendertarget(&mut self.camera, self.current_rendertarget);
+            draw_texture_ex(
+                self.transition_rendertarget.texture,
+                0f32,
+                0f32,
+                WHITE,
+                DrawTextureParams {
+                    ..Default::default()
+                },
             );
         }
         let game_size = vec2(
